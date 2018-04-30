@@ -54,39 +54,50 @@ public class Cliente {
     private long timeSimetrica = 0;
     private long timeSalidaACT = 0;
     private long timeResp = 0;
+    private static final int TIMEOUT = 10000;
 
     //Server data
-    X509Certificate serverCert = null;
-    PublicKey publicKey = null;
-    SecretKey secretKey = null;
+    private  X509Certificate serverCert = null;
+    private PublicKey publicKey = null;
+    private SecretKey secretKey = null;
 
     //Client data
-    Socket socket = null;
-    PrintWriter writer = null;
-    BufferedReader reader = null;
-    KeyPair keyPair = null;
-    X509Certificate cert = null;
-    String[] ALGORITMOS = null;
+    private Socket socket = null;
+    private PrintWriter writer = null;
+    private BufferedReader reader = null;
+    private KeyPair keyPair = null;
+    private X509Certificate cert = null;
+    private int tries = 0;
+    private boolean sent = false;
+    private String[] ALGORITMOS = null;
 
     //Input data
     BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
     String pos = null;
 
-    public void enviarCoordenadas() throws IOException, CertificateException, InvalidKeyException, NoSuchAlgorithmException{
-        definirCoordenadas();
-        definirPuerto();
-        iniciarProtocolo();
-        definirProtocolo();
-        intercambiarCertificados();
-        obtenerLlaveSimetrica();
-        generarACT1ACT2();
-        esperarRespuesta();
-    }
+    public void enviarCoordenadas() {
+        while(!sent && tries < 5)
+            try {
+                long timeL = System.currentTimeMillis();
+                definirCoordenadas();
+                definirPuerto();
+                iniciarProtocolo();
+                definirProtocolo();
+                intercambiarCertificados();
+                timeSimetrica = timeL - System.currentTimeMillis();
+                obtenerLlaveSimetrica();
+                timeSalidaACT = System.currentTimeMillis();
+                generarACT1ACT2();
+                esperarRespuesta();
+                timeResp = System.currentTimeMillis() - timeSalidaACT;
+                sent = true;
+            } catch (Exception e){ tries++; }
+        }
+
 
     public void esperarRespuesta() throws IOException {
         //Leer respuesta servidor
         String s = reader.readLine();
-        timeResp = System.currentTimeMillis() - timeSalidaACT;
         if(s != null) {
             //(SIN + s);
         }
@@ -108,9 +119,6 @@ public class Cliente {
         //(SOUT + ACT1 + act1);
         writer.println(ACT1+act1);
 
-        //Tiempo cuando se envio el acto
-        timeSalidaACT = System.currentTimeMillis();
-
         //Obtener MAC de act1
         byte[] macText = getMAC(pos.getBytes(), secretKey, ALGORITMOS[1]);
         byte[] act2Bytes = RSACipher.cifrar(publicKey, macText);
@@ -130,19 +138,16 @@ public class Cliente {
 
     public void obtenerLlaveSimetrica() throws IOException {
        //Tiempo en obtener la llave siemtrica
-        long timeStrt = System.currentTimeMillis();
 
         //Leer mensaje encriptado
-        reader.readLine();
         String s = reader.readLine();
-        //(SIN + s);
+        //.println(SIN + s);
 
         //Descifrar llave del mensaje
         s = s.split(":")[1];
         //(s);
         byte[] llaveBytes = RSACipher.descifrar(DatatypeConverter.parseHexBinary(s), keyPair.getPrivate());
         secretKey = new SecretKeySpec(llaveBytes, 0, llaveBytes.length, ALGORITMOS[0]);
-        timeSimetrica = System.currentTimeMillis() - timeStrt;
     }
 
     public void intercambiarCertificados() throws IOException {
@@ -150,24 +155,27 @@ public class Cliente {
         try {
             cert = generarCertificado("SHA256WithRSA");
         } catch (Exception e) { }
-        if(cert == null) System.exit(-1);
+        if(cert == null) {
+            //.print("ES EN INTERCAMBIAR CERTIFICADOS OR");
+            System.exit(-1);
+        }
 
         //Enviar certificado
         writer.println(CC);
-        //(SOUT + CC);
+        //.println(SOUT + CC);
         try {
             socket.getOutputStream().write(cert.getEncoded());
             socket.getOutputStream().flush();
-            //(SOUT + "Client certificate bytes");
+            //.print(SOUT + "Client certificate bytes");
         } catch (Exception e) { }
 
         //Leer resultado certificado
         String s = reader.readLine();
         if(s != null) {
-            //(SIN + s);
+            //.print(SIN + s);
         }
         else {
-            //(CTO);
+            //.print(CTO);
             //System.exit(-1);
         }
 
@@ -179,14 +187,23 @@ public class Cliente {
         byte[] bytes = Arrays.copyOf(temp, k);
         //(SIN + "Server certificate bytes");*/
 
+        s = reader.readLine();
+        if(s != null) {
+            //.print(SIN + s);
+        }
+        else {
+            //.print(CTO);
+            //System.exit(-1);
+        }
         //Obtener certificado del servidor y extraer la PublicKey
         try {
             serverCert = (X509Certificate) (CertificateFactory.getInstance("X.509")).generateCertificate(socket.getInputStream());
         } catch (Exception e) {
             writer.println(ERR);
-            //(SOUT + ERR);
-            //(e.getMessage());
-            System.exit(-1);
+            //.println(SOUT + ERR);
+            //.print(e.getMessage());
+            //.print("ES EN EXTRAER PUBLICKEY");
+            //System.exit(-1);
         }
         publicKey = serverCert.getPublicKey();
 
@@ -201,6 +218,7 @@ public class Cliente {
         else {
             writer.println(ERR);
             //(CRTERR);
+            //.print("ES EN VALIDACION DEL CERTIFICADO");
             System.exit(-1);
         }
     }
@@ -214,8 +232,8 @@ public class Cliente {
         //} catch (Exception e) { }
 
         try {
-            socket = new Socket(InetAddress.getLocalHost(), port);
-            socket.setSoTimeout(10000);
+            socket = new Socket("172.24.42.26", 9160);
+            socket.setSoTimeout(TIMEOUT);
         } catch (Exception e) { throw e; }
         ////("Conectado al puerto " + port);
 
@@ -233,11 +251,6 @@ public class Cliente {
 
         //Recibir compatibilidad de algoritmos
         String s = reader.readLine();
-        if(s != null) System.out.println(SIN + s);
-        else {
-            System.out.println(CTO);
-            System.exit(-1);
-        }
     }
 
     public void iniciarProtocolo() throws IOException {
@@ -255,11 +268,6 @@ public class Cliente {
 
         //Recibir respuesta servidor
         String s = reader.readLine();
-        if(s != null) System.out.println(SIN + s);
-        else {
-            System.out.println(CTO);
-            System.exit(-1);
-        }
     }
 
     private String toHexString(byte[] data)
@@ -323,6 +331,20 @@ public class Cliente {
     public void test(){
         //("HOLAAA QUE TALLL???");
     }
+
+
+    public long getTimeSim(){
+        return timeSimetrica;
+    }
+
+    public long getTimeAct(){
+        return timeResp;
+    }
+
+    public boolean isSent() {
+        return sent;
+    }
+
     public static void main(String[] args) {
         Cliente cliente = new Cliente();
         try {

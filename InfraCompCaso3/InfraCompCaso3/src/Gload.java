@@ -8,7 +8,7 @@ public class Gload {
     public Gload(){
         Task work = createTask();
         int numberOfTask = 50;
-        int gapBetweenTasks = 10000;
+        int gapBetweenTasks = 1000;
         generator = new LoadGenerator("TEST",
                 numberOfTask,work,gapBetweenTasks);
         generator.generate();;

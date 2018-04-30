@@ -1,47 +1,34 @@
-import uniandes.gload.core.Task;
+    import uniandes.gload.core.Task;
 
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
+    public class ClientServerTask extends Task {
 
-public class ClientServerTask extends Task {
+        long tiempoActualizar = 0;
+        long tiempoLlave = 0;
 
-    String fallo = "";
-
-    @Override
-    public void execute() {
-        Cliente client = new Cliente();
-        try {
+        @Override
+        public void execute() {
+            Cliente client = new Cliente();
             client.enviarCoordenadas();
-            success();
-        } catch (IOException e) {
-            fallo = e.getMessage();
-            fail();
-        } catch (CertificateException e) {
-            fallo = e.getMessage();
-            fail();
-        } catch (InvalidKeyException e) {
-            fallo = e.getMessage();
-            fail();
-        } catch (NoSuchAlgorithmException e) {
-            fallo = e.getMessage();
-            fail();
-        }
-        catch (Exception e){
-            fallo = e.getMessage();
-            fail();
+            tiempoActualizar = client.getTimeAct();
+            tiempoLlave = client.getTimeSim();
+            if(client.isSent()) {
+                success();
+            } else {
+                fail();
+            }
+
         }
 
-    }
+        @Override
+        public void fail() {
+            System.out.println("Fallo");
+        }
 
-    @Override
-    public void fail() {
-        System.out.println("Fallo por: " + fallo);
-    }
+        @Override
+        public void success() {
+            System.out.println("Sirvio");
+            System.out.println("Tiempo actualizacion: " + tiempoActualizar);
+            System.out.println("Tiempo llave: " + tiempoLlave);
 
-    @Override
-    public void success() {
-        System.out.println("SIRVIOO");
+        }
     }
-}
