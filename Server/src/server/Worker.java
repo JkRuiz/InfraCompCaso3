@@ -72,7 +72,7 @@ public class Worker implements Runnable {
     }
 
     private void printError(Exception e) {
-        System.out.println(e.getMessage());
+        System.out.println(e.getMessage() + " ES LO DEL WORKER");
         //e.printStackTrace();
     }
 
@@ -190,7 +190,8 @@ public class Worker implements Runnable {
             linea = read(reader);
             if (linea.split(SEPARADOR).length < 2 || !linea.split(SEPARADOR)[1].equals("OK")) {
                 System.out.println("Error de confirmación, cerrando conexion: " + linea);
-                return;
+                throw new Exception("Cerrando conexion");
+                //return;
             }
 
             

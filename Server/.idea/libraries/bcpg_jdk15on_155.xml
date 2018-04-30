@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="bcpg-jdk15on-155">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../../../../Bouncy Castle/bcpg-jdk15on-155.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../Bouncy Castle/bcpkix-jdk15on-155.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../../../Bouncy Castle/bcprov-jdk15on-155.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
