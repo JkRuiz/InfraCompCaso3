@@ -2,8 +2,13 @@
 
     public class ClientServerTask extends Task {
 
-        long tiempoActualizar = 0;
-        long tiempoLlave = 0;
+        private long tiempoActualizar = 0;
+        private long tiempoLlave = 0;
+        private DataLogger dataLogger;
+
+        public ClientServerTask(DataLogger dataLogger) {
+            this.dataLogger = dataLogger;
+        }
 
         @Override
         public void execute() {
@@ -11,12 +16,12 @@
             client.enviarCoordenadas();
             tiempoActualizar = client.getTimeAct();
             tiempoLlave = client.getTimeSim();
+            dataLogger.logData(tiempoActualizar, tiempoLlave, client.isSent());
             if(client.isSent()) {
                 success();
             } else {
                 fail();
             }
-
         }
 
         @Override

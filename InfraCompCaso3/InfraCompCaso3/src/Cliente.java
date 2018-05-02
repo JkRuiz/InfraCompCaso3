@@ -54,7 +54,7 @@ public class Cliente {
     private long timeSimetrica = 0;
     private long timeSalidaACT = 0;
     private long timeResp = 0;
-    private static final int TIMEOUT = 10000;
+    private static final int TIMEOUT = 1000000;
 
     //Server data
     private  X509Certificate serverCert = null;
@@ -76,23 +76,20 @@ public class Cliente {
     String pos = null;
 
     public void enviarCoordenadas() {
-        while(!sent && tries < 5)
-            try {
-                long timeL = System.currentTimeMillis();
-                definirCoordenadas();
-                definirPuerto();
-                iniciarProtocolo();
-                definirProtocolo();
-                intercambiarCertificados();
-                timeSimetrica = timeL - System.currentTimeMillis();
-                obtenerLlaveSimetrica();
-                timeSalidaACT = System.currentTimeMillis();
-                generarACT1ACT2();
-                esperarRespuesta();
-                timeResp = System.currentTimeMillis() - timeSalidaACT;
-                sent = true;
-            } catch (Exception e){ tries++; }
-        }
+        try {
+            definirCoordenadas();
+            definirPuerto();
+            iniciarProtocolo();
+            definirProtocolo();
+            intercambiarCertificados();
+            timeSimetrica = System.currentTimeMillis() - timeSimetrica;
+            obtenerLlaveSimetrica();
+            generarACT1ACT2();
+            esperarRespuesta();
+            timeResp = System.currentTimeMillis() - timeSalidaACT;
+            sent = true;
+        } catch (Exception e){ timeSimetrica = 0; timeSalidaACT = 0; sent = false; }
+    }
 
 
     public void esperarRespuesta() throws IOException {
@@ -115,6 +112,7 @@ public class Cliente {
         byte[] act1Bytes = AESCipher.cifrar(pos, secretKey, ALGORITMOS[0] + PADDING);
         String act1 = toHexString(act1Bytes).toUpperCase();
 
+        timeSalidaACT = System.currentTimeMillis();
         //Enviar act1 cifrado
         //(SOUT + ACT1 + act1);
         writer.println(ACT1+act1);
@@ -137,7 +135,7 @@ public class Cliente {
     }
 
     public void obtenerLlaveSimetrica() throws IOException {
-       //Tiempo en obtener la llave siemtrica
+        //Tiempo en obtener la llave siemtrica
 
         //Leer mensaje encriptado
         String s = reader.readLine();
@@ -195,6 +193,8 @@ public class Cliente {
             //.print(CTO);
             //System.exit(-1);
         }
+
+        timeSimetrica = System.currentTimeMillis();
         //Obtener certificado del servidor y extraer la PublicKey
         try {
             serverCert = (X509Certificate) (CertificateFactory.getInstance("X.509")).generateCertificate(socket.getInputStream());
@@ -233,7 +233,7 @@ public class Cliente {
 
         try {
             socket = new Socket("172.24.42.26", 9160);
-            socket.setSoTimeout(TIMEOUT);
+            //socket.setSoTimeout(TIMEOUT);
         } catch (Exception e) { throw e; }
         ////("Conectado al puerto " + port);
 
